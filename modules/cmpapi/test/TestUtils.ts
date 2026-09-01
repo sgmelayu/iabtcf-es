@@ -3,10 +3,10 @@ import {CmpApiModel} from '../src/CmpApiModel';
 import {CmpApi} from '../src/CmpApi';
 import {CustomCommands} from '../src/CustomCommands';
 import {InAppTCData} from '../src/response/InAppTCData';
-import {PurposeRestriction, TCString, Vector} from '@iabtcf/core';
+import {PurposeRestriction, TCString, Vector} from '@iabtechlabtcf/core';
 import {TCData} from '../src/response/TCData';
 import {expect} from 'chai';
-import {makeRandomInt} from '@iabtcf/testing';
+import {makeRandomInt} from '@iabtechlabtcf/testing';
 
 export class TestUtils {
 
@@ -20,6 +20,7 @@ export class TestUtils {
     );
 
   }
+
   private static checkVectorToBooleanVector(name: string,
                                             vector: Vector,
                                             boolVector: BooleanVector,
@@ -45,6 +46,7 @@ export class TestUtils {
     }
 
   }
+
   private static checkVectorToBitField(name: string,
                                        vector: Vector,
                                        str: string): void {
@@ -52,7 +54,7 @@ export class TestUtils {
     expect(str.length).to.equal(vector.maxId);
     vector.forEach((value: boolean, id: number): void => {
 
-      expect(str.charAt(id - 1), name+' id: ' + id ).to.equal(+value + '');
+      expect(str.charAt(id - 1), name+' id: ' + id ).to.equal(String(Number(value)));
 
     });
 
@@ -66,7 +68,7 @@ export class TestUtils {
     expect(inAppTCData.tcString, 'tcString').to.equal(TCString.encode(tcModel));
     expect(inAppTCData.eventStatus, 'eventStatus').to.equal(CmpApiModel.eventStatus);
     expect(inAppTCData.isServiceSpecific, 'isServiceSpecific').to.equal(tcModel.isServiceSpecific);
-    expect(inAppTCData.useNonStandardStacks, 'useNonStandardStacks').to.equal(tcModel.useNonStandardStacks);
+    expect(inAppTCData.useNonStandardTexts, 'useNonStandardTexts').to.equal(tcModel.useNonStandardTexts);
     expect(inAppTCData.purposeOneTreatment, 'purposeOneTreatment').to.equal(tcModel.purposeOneTreatment);
     expect(inAppTCData.publisherCC, 'publisherCC').to.equal(tcModel.publisherCountryCode);
     expect(inAppTCData.outOfBand, 'outOfBand').to.be.undefined;
@@ -139,17 +141,17 @@ export class TestUtils {
     expect(tcData.eventStatus, 'eventStatus').to.equal(CmpApiModel.eventStatus);
     expect(tcData.cmpStatus, 'cmpStatus').to.equal(CmpApiModel.cmpStatus);
     expect(tcData.isServiceSpecific, 'isServiceSpecific').to.equal(tcModel.isServiceSpecific);
-    expect(tcData.useNonStandardStacks, 'useNonStandardStacks').to.equal(tcModel.useNonStandardStacks);
+    expect(tcData.useNonStandardTexts, 'useNonStandardTexts').to.equal(tcModel.useNonStandardTexts);
     expect(tcData.purposeOneTreatment, 'purposeOneTreatment').to.equal(tcModel.purposeOneTreatment);
     expect(tcData.publisherCC, 'publisherCC').to.equal(tcModel.publisherCountryCode);
 
-    if (tcModel.vendorsAllowed.size) {
+    if (tcData.outOfBand && tcModel.vendorsAllowed.size) {
 
       this.checkVectorToBooleanVector('outOfBand.allowedVendors', tcModel.vendorsAllowed, tcData.outOfBand.allowedVendors as BooleanVector, vendors);
 
     }
 
-    if (tcModel.vendorsDisclosed.size) {
+    if (tcData.outOfBand && tcModel.vendorsDisclosed.size) {
 
       this.checkVectorToBooleanVector('outOfBand.disclosedVendors', tcModel.vendorsDisclosed, tcData.outOfBand.disclosedVendors as BooleanVector, vendors);
 
@@ -160,6 +162,7 @@ export class TestUtils {
 
     this.checkVectorToBooleanVector('vendor.consents', tcModel.vendorConsents, tcData.vendor.consents as BooleanVector, vendors);
     this.checkVectorToBooleanVector('vendor.legitimateInterests', tcModel.vendorLegitimateInterests, tcData.vendor.legitimateInterests as BooleanVector, vendors);
+    this.checkVectorToBooleanVector('vendor.disclosedVendors', tcModel.vendorsDisclosed, tcData.vendor.disclosedVendors as BooleanVector, vendors);
 
     this.checkVectorToBooleanVector('specialFeatureOptins', tcModel.specialFeatureOptins, tcData.specialFeatureOptins as BooleanVector);
 

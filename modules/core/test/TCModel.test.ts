@@ -1,10 +1,15 @@
-import {sameDataDiffRef} from '@iabtcf/testing';
+import {sameDataDiffRef} from '@iabtechlabtcf/testing';
 import {expect} from 'chai';
 import {TCModel} from '../src/TCModel';
 
 import {Vector} from '../src/model/Vector';
 import {GVL} from '../src/GVL';
-import {GVLFactory} from '../../testing/lib/GVLFactory';
+import {GVLFactory} from '../../testing/lib/mjs/GVLFactory';
+
+import vendorListVersion24Json from '../../testing/lib/mjs/vendorlist/v2/vendor-list-v24.json' assert { type: 'json' };
+import {VersionOrVendorList} from '../lib/mjs';
+
+const vendorListJson: any = vendorListVersion24Json as unknown as VersionOrVendorList;
 
 describe('TCModel', (): void => {
 
@@ -84,7 +89,7 @@ describe('TCModel', (): void => {
 
   };
 
-  const testBoolean = (fieldName: string): void => {
+  const testBoolean = (fieldName: string, testVal: boolean): void => {
 
     describe(fieldName, (): void => {
 
@@ -92,7 +97,15 @@ describe('TCModel', (): void => {
 
         const tcModel = new TCModel();
 
-        expect(tcModel[fieldName], `${fieldName} should be default false`).to.be.false;
+        if (testVal) {
+
+          expect(tcModel[fieldName], `${fieldName} should be default false`).to.be.true;
+
+        } else {
+
+          expect(tcModel[fieldName], `${fieldName} should be default false`).to.be.false;
+
+        }
 
         tcModel[fieldName] = true;
 
@@ -110,7 +123,7 @@ describe('TCModel', (): void => {
 
     describe(fieldName, (): void => {
 
-      const gvl: GVL = new GVL(require('@iabtcf/testing/lib/vendorlist/vendor-list.json'));
+      const gvl: GVL = new GVL(vendorListJson);
 
       it(`should create an instance of ${instanceName} as ${fieldName} on init`, (): void => {
 
@@ -143,7 +156,7 @@ describe('TCModel', (): void => {
 
     // since we didn't construct with a gvl we should
     // have empty fields here
-    expect(tcModel.vendorListVersion).to.equal(0); expect(tcModel.policyVersion).to.equal(2);
+    expect(tcModel.vendorListVersion).to.equal(0); expect(tcModel.policyVersion).to.equal(5);
     expect(tcModel.gvl).to.be.undefined;
 
   });
@@ -192,8 +205,8 @@ describe('TCModel', (): void => {
   testDate('created');
   testDate('lastUpdated');
 
-  testBoolean('isServiceSpecific');
-  testBoolean('useNonStandardStacks');
+  testBoolean('isServiceSpecific', true);
+  testBoolean('useNonStandardTexts', false);
 
   testInstanceOf('purposeConsents', Vector);
   testInstanceOf('purposeLegitimateInterests', Vector);
@@ -220,7 +233,7 @@ describe('TCModel', (): void => {
 
   const runSetAllAndUnsetAll = (): void => {
 
-    const gvl: GVL = new GVL(require('@iabtcf/testing/lib/vendorlist/vendor-list.json'));
+    const gvl: GVL = new GVL(vendorListJson);
 
     const loopGVLMap = (gvlKey: string, cb ): void => {
 

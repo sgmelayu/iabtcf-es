@@ -1,10 +1,10 @@
-import {SequenceVersionMap} from './SequenceVersionMap';
-import {TCModel} from '../../';
-import {EncodingOptions} from '../EncodingOptions';
+import {SequenceVersionMap} from './SequenceVersionMap.js';
+import type {TCModel} from '../../TCModel.js';
+import {EncodingOptions} from '../EncodingOptions.js';
 import {
   Segment,
   Fields,
-} from '../../model';
+} from '../../model/index.js';
 
 export class SegmentSequence implements SequenceVersionMap {
 
@@ -29,6 +29,7 @@ export class SegmentSequence implements SequenceVersionMap {
          * saving or the cmp api to surface.
          */
 
+        this['2'].push(Segment.VENDORS_DISCLOSED);
         this['2'].push(Segment.PUBLISHER_TC);
 
       } else {

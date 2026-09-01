@@ -1,12 +1,24 @@
 import * as sinon from 'sinon';
 import {GVL, TCString, TCModel} from '../src';
-import {XMLHttpTestTools, makeRandomInt, GVLFactory} from '@iabtcf/testing';
-
+import {XMLHttpTestTools, makeRandomInt, GVLFactory} from '@iabtechlabtcf/testing';
 import {expect} from 'chai';
 import {PurposeRestriction} from '../src/model/PurposeRestriction';
 import {RestrictionType} from '../src/model/RestrictionType';
+import * as fs from 'fs';
+import * as path from 'path';
+import {fileURLToPath} from 'url';
+// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+// @ts-ignore
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 describe('Issues Reported', (): void => {
+
+  beforeEach(function() {
+
+    XMLHttpTestTools.beforeEach();
+
+  });
 
   it('112 Vendor ranges incorrectly decoded from publisher restrictions', async (): Promise<void> => {
 
@@ -54,7 +66,7 @@ describe('Issues Reported', (): void => {
     const CONSENTSCREEN = makeRandomInt(1, 63);
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const vendorlist = require('@iabtcf/testing/lib/vendorlist/vendor-list.json');
+    const vendorlist = JSON.parse(fs.readFileSync(__dirname + '/../../testing/lib/mjs/vendorlist/v2/vendor-list.json').toString());
 
     GVL.baseUrl = 'http://mydomain.com/cmp/vendorlist';
 
@@ -87,10 +99,10 @@ describe('Issues Reported', (): void => {
 
     const language = 'fr';
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const translationJson = require('@iabtcf/testing/lib/vendorlist/purposes-fr.json');
+    const translationJson = JSON.parse(fs.readFileSync(__dirname + '/../../testing/lib/mjs/vendorlist/v2/purposes-fr.json').toString());
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const gvl = new GVL(require('@iabtcf/testing/lib/vendorlist/vendor-list.json'));
+    const gvl = new GVL(JSON.parse(fs.readFileSync(__dirname + '/../../testing/lib/mjs/vendorlist/v2/vendor-list.json').toString()));
     const {tcfPolicyVersion, gvlSpecificationVersion} = gvl;
 
     expect(tcfPolicyVersion, 'tcfPolicyVersion').to.equal(2);
@@ -115,7 +127,7 @@ describe('Issues Reported', (): void => {
     const ENGLISH = 'EN';
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const gvl = new GVL(require('@iabtcf/testing/lib/vendorlist/vendor-list.json'));
+    const gvl = new GVL(JSON.parse(fs.readFileSync(__dirname + '/../../testing/lib/mjs/vendorlist/v2/vendor-list.json').toString()));
     const tcModel = new TCModel(gvl);
 
     expect(tcModel.consentLanguage, 'consentLanguage').to.equal(ENGLISH);
@@ -128,15 +140,12 @@ describe('Issues Reported', (): void => {
 
   it('117 TCString.encode writes all vendors as disclosed even after GVL.narrowVendorsTo([...])', async (): Promise<void> => {
 
-    const tcModel = new TCModel(new GVL());
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const vendorlist = JSON.parse(fs.readFileSync(__dirname + '/../../testing/lib/mjs/vendorlist/v2/vendor-list.json').toString());
+
+    const tcModel = new TCModel(new GVL(vendorlist));
     tcModel.cmpId = makeRandomInt(2, 100);
     tcModel.cmpVersion = makeRandomInt(1, 100);
-
-    const req: sinon.SinonFakeXMLHttpRequest = XMLHttpTestTools.requests[0];
-
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const vendorlist = require('@iabtcf/testing/lib/vendorlist/vendor-list.json');
-    req.respond(200, XMLHttpTestTools.JSON_HEADER, JSON.stringify(vendorlist));
 
     await tcModel.gvl.readyPromise;
     const vendors = [12, 100];
@@ -149,6 +158,67 @@ describe('Issues Reported', (): void => {
     const decoded = TCString.decode(TCString.encode(tcModel));
 
     expect(decoded.vendorsDisclosed.size, 'decoded.vendorsDisclosed.size').to.equal(vendors.length);
+
+  });
+
+  it('441 dataCategories should be in the tcModel.gvl', async (): Promise<void> => {
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const vendorlist = JSON.parse(fs.readFileSync(__dirname + '/../../testing/lib/mjs/vendorlist/v2.2/vendor-list.json').toString());
+
+    const tcModel = new TCModel(new GVL(vendorlist));
+    tcModel.cmpId = makeRandomInt(2, 100);
+    tcModel.cmpVersion = makeRandomInt(1, 100);
+
+    await tcModel.gvl.readyPromise;
+
+    expect(tcModel.gvl.dataCategories[1].id, 'tcModel.gvl.dataCategories[1].id').to.equal(1);
+    expect(tcModel.gvl.dataCategories[1].name, 'tcModel.gvl.dataCategories[1].name').to.equal('IP addresses');
+
+  });
+
+  it('439 GVL language change should be applied', async (): Promise<void> => {
+
+    GVL.baseUrl = 'http://sweetcmp.com';
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const vendorlist = JSON.parse(fs.readFileSync('../testing/lib/mjs/vendorlist/v2/vendor-list-v24.json').toString());
+    const gvl: GVL = new GVL(vendorlist);
+    const language = 'fr';
+    const translationJson = JSON.parse(fs.readFileSync('../testing/lib/mjs/vendorlist/v2/purposes-fr.json').toString());
+    const changePromise = gvl.changeLanguage(language);
+    const req: sinon.SinonFakeXMLHttpRequest = XMLHttpTestTools.requests[0];
+
+    expect(req.url).to.equal(GVL.baseUrl + GVL.languageFilename.replace('[LANG]', language));
+    req.respond(200, XMLHttpTestTools.JSON_HEADER, JSON.stringify(translationJson));
+
+    await changePromise;
+
+    const tcModel = new TCModel(gvl);
+
+    expect(tcModel.gvl.language, 'tcModel.gvl.language').to.equal('FR');
+    expect(gvl.specialPurposes, 'gvl.specialPurposes').to.deep.equal(translationJson.specialPurposes);
+
+  });
+
+  it('481 TCString.encode writes given disclosed vendors correctly (vendor set using .set()', async (): Promise<void> => {
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const vendorlist = JSON.parse(fs.readFileSync(__dirname + '/../../testing/lib/mjs/vendorlist/v2/vendor-list.json').toString());
+
+    const tcModel = new TCModel(new GVL(vendorlist));
+    tcModel.cmpId = makeRandomInt(2, 100);
+    tcModel.cmpVersion = makeRandomInt(1, 100);
+
+    await tcModel.gvl.readyPromise;
+
+    tcModel.vendorsDisclosed.empty();
+    tcModel.vendorsDisclosed.set([1]);
+
+    expect(tcModel.vendorsDisclosed.size, 'tcModel.vendorsDisclosed.size').to.equal(1);
+
+    const decoded = TCString.decode(TCString.encode(tcModel));
+
+    expect(decoded.vendorsDisclosed.size, 'decoded.vendorsDisclosed.size').to.equal(1);
 
   });
 
@@ -281,5 +351,29 @@ describe('Issues Reported', (): void => {
     expect(tcModel.publisherRestrictions.getVendors(new PurposeRestriction(1, 1)), `tcModel.publisherRestrictions vendor array`).to.deep.equal([7, 20, 71, 122, 140, 183]);
 
   });
+  /*
+   it('xxx TCString.decode finds all vendors as disclosed', async (): Promise<void> => {
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    let tcModel: TCModel;
+    tcModel = TCString.decode("CQd924AQd924AASACCENCNFsAP_gAEIAACiQL6QBAAGAAOANmAcAF9IAIADgAA.IL6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.YIAAAAAAAAAA");
+    console.log("CQd924AQd924AASACCENCNFsAP_gAEIAACiQL6QBAAGAAOANmAcAF9IAIADgAA.IL6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.YIAAAAAAAAAA");
+    console.log(tcModel);
+    expect(tcModel.vendorsDisclosed.size, 'decoded.vendorsDisclosed.size').to.equal(4);
+
+  });
+
+  it('Decode tcString for Debug Purposes', async (): Promise<void> => {
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    let tcModel: TCModel;
+    // CPTtLAAPTtLAAAKAAAENAAFgALwAAEAAAAAAAOgAgABgAAAA.IAoAAgABgAAEAQAAEAAA.d4AACEAAAAAA
+    tcModel = TCString.decode("CQd924AQd924AASACCENCNFsAP_gAEIAACiQL6QBAAGAAOANmAcAF9IAIADgAA.IL6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.YIAAAAAAAAAA");
+    // console.log("CQd924AQd924AASACCENCNFsAP_gAEIAACiQL6QBAAGAAOANmAcAF9IAIADgAA.IL6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.YIAAAAAAAAAA");
+    console.log(tcModel);
+    expect(tcModel.vendorListVersion, 'decoded.vendorsDisclosed.size').not.equal(0);
+
+  });
+  */
 
 });

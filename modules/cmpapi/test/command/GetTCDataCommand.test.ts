@@ -1,8 +1,8 @@
 import {CmpApiModel} from '../../src/CmpApiModel';
-import {TCModelFactory, TCStringFactory, XMLHttpTestTools} from '@iabtcf/testing';
+import {TCModelFactory, TCStringFactory, XMLHttpTestTools} from '@iabtechlabtcf/testing';
 import {GetTCDataCommand} from '../../src/command/GetTCDataCommand';
 import {TCData} from '../../src/response/TCData';
-import {TCString} from '@iabtcf/core';
+import {TCString} from '@iabtechlabtcf/core';
 import {expect} from 'chai';
 
 describe('command->GetTCDataCommand', (): void => {
@@ -11,6 +11,9 @@ describe('command->GetTCDataCommand', (): void => {
 
     CmpApiModel.gdprApplies = true;
     CmpApiModel.tcModel = TCModelFactory.withGVL();
+    CmpApiModel.tcModel.isServiceSpecific = true;
+    CmpApiModel.tcModel.supportOOB = false;
+
     CmpApiModel.tcString = TCString.encode(CmpApiModel.tcModel);
 
     const tcDataCallback = (tcData: TCData, success: boolean): void => {

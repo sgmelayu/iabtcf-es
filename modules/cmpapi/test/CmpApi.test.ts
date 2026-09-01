@@ -7,11 +7,11 @@ import {Ping} from '../src/response/Ping';
 import {TCData} from '../src/response/TCData';
 import {TCFCommand} from '../src/command/TCFCommand';
 import {TestUtils} from './TestUtils';
-import {VendorList} from '@iabtcf/core';
+import {VendorList} from '@iabtechlabtcf/core';
 import {expect} from 'chai';
-import {makeRandomInt, makeRandomString, TCStringFactory} from '@iabtcf/testing';
+import {makeRandomInt, makeRandomString, TCStringFactory} from '@iabtechlabtcf/testing';
 
-import * as stub from '@iabtcf/stub';
+import * as stub from '@iabtechlabtcf/stub';
 
 const API_VERSION = 2;
 
@@ -42,7 +42,7 @@ describe('CmpApi', (): void => {
 
   };
 
-  const getCmpApi = (isServiceSpecific = false, customCommands?: CustomCommands): CmpApi => {
+  const getCmpApi = (isServiceSpecific = true, customCommands?: CustomCommands): CmpApi => {
 
     const cmpId = makeRandomInt(2, 100);
     const cmpVersion = makeRandomInt(1, 15);
@@ -54,6 +54,7 @@ describe('CmpApi', (): void => {
   beforeEach((): void => {
 
     stub.default();
+    CmpApiModel.reset();
 
   });
   afterEach((): void => {

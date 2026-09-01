@@ -1,5 +1,5 @@
-import {SequenceVersionMap, SVMItem} from './SequenceVersionMap';
-import {Segment, Fields} from '../../model';
+import {SequenceVersionMap, SVMItem} from './SequenceVersionMap.js';
+import {Segment, Fields} from '../../model/index.js';
 
 export class FieldSequence implements SequenceVersionMap {
 
@@ -29,7 +29,7 @@ export class FieldSequence implements SequenceVersionMap {
       Fields.vendorListVersion,
       Fields.policyVersion,
       Fields.isServiceSpecific,
-      Fields.useNonStandardStacks,
+      Fields.useNonStandardTexts,
       Fields.specialFeatureOptins,
       Fields.purposeConsents,
       Fields.purposeLegitimateInterests,
@@ -38,6 +38,9 @@ export class FieldSequence implements SequenceVersionMap {
       Fields.vendorConsents,
       Fields.vendorLegitimateInterests,
       Fields.publisherRestrictions,
+    ],
+    [Segment.VENDORS_DISCLOSED]: [
+      Fields.vendorsDisclosed,
     ],
     [Segment.PUBLISHER_TC]: [
       Fields.publisherConsents,
@@ -48,9 +51,6 @@ export class FieldSequence implements SequenceVersionMap {
     ],
     [Segment.VENDORS_ALLOWED]: [
       Fields.vendorsAllowed,
-    ],
-    [Segment.VENDORS_DISCLOSED]: [
-      Fields.vendorsDisclosed,
     ],
   };
 

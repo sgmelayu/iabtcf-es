@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 import {TCString, TCModel} from '../src';
 import {Segment} from '../src/model';
-import {TCModelFactory} from '@iabtcf/testing';
+import {TCModelFactory} from '@iabtechlabtcf/testing';
 
 describe('TCString', (): void => {
 
@@ -35,26 +35,59 @@ describe('TCString', (): void => {
 
   });
 
-  it('should unset purposeLegitimateInterests 1 if it is set', (): void => {
+  it('should unset purposeLegitimateInterests 1, 3, 4, 5 & 6 if it is set', (): void => {
 
     const tcModel = getTCModel();
-    tcModel.purposeLegitimateInterests.set(1);
+    tcModel.purposeLegitimateInterests.set([1, 3, 4, 5, 6]);
 
     expect(tcModel.purposeLegitimateInterests.has(1), 'purposeLegitimateInterests.has(1)').to.be.true;
+    expect(tcModel.purposeLegitimateInterests.has(3), 'purposeLegitimateInterests.has(3)').to.be.true;
+    expect(tcModel.purposeLegitimateInterests.has(4), 'purposeLegitimateInterests.has(4)').to.be.true;
+    expect(tcModel.purposeLegitimateInterests.has(5), 'purposeLegitimateInterests.has(5)').to.be.true;
+    expect(tcModel.purposeLegitimateInterests.has(6), 'purposeLegitimateInterests.has(6)').to.be.true;
 
     const encodedString = TCString.encode(tcModel);
     const newModel = TCString.decode(encodedString);
 
     expect(newModel.purposeLegitimateInterests.has(1), 'newModel.purposeLegitimateInterests.has(1)').to.be.false;
+    expect(newModel.purposeLegitimateInterests.has(3), 'newModel.purposeLegitimateInterests.has(3)').to.be.false;
+    expect(newModel.purposeLegitimateInterests.has(4), 'newModel.purposeLegitimateInterests.has(4)').to.be.false;
+    expect(newModel.purposeLegitimateInterests.has(5), 'newModel.purposeLegitimateInterests.has(5)').to.be.false;
+    expect(newModel.purposeLegitimateInterests.has(6), 'newModel.purposeLegitimateInterests.has(6)').to.be.false;
 
   });
 
-  it('should set all vendorsDisclosed in the GVL when isServiceSpecific is false', (): void => {
+  it('should unset vendorsDisclosed', (): void => {
 
     const tcModel = getTCModel();
 
     tcModel.vendorsDisclosed.empty();
-    tcModel.isServiceSpecific = false;
+    tcModel.unsetAllVendorsDisclosed();
+    tcModel.isServiceSpecific = true;
+    tcModel.supportOOB = false;
+    tcModel.publisherCountryCode = 'DE';
+
+    const encodedString = TCString.encode(tcModel);
+    const newModel = TCString.decode(encodedString);
+
+    const vIds: number[] = Object.keys(tcModel.gvl.vendors).map((vId: string): number => parseInt(vId, 10));
+
+    vIds.forEach((vendorId: number): void => {
+
+      expect(newModel.vendorsDisclosed.has(vendorId), `newModel.vendorsDisclosed.has(${vendorId})`).to.be.false;
+      expect(tcModel.vendorsDisclosed.has(vendorId), `tcModel.vendorsDisclosed.has(${vendorId})`).to.be.false;
+
+    });
+
+  });
+
+  it('should set vendorsDisclosed to all vendors in the GVL', (): void => {
+
+    const tcModel = getTCModel();
+
+    tcModel.vendorsDisclosed.empty();
+    tcModel.setAllVendorsDisclosed();
+    tcModel.isServiceSpecific = true;
 
     const encodedString = TCString.encode(tcModel);
     const newModel = TCString.decode(encodedString);
@@ -64,7 +97,7 @@ describe('TCString', (): void => {
     vIds.forEach((vendorId: number): void => {
 
       expect(newModel.vendorsDisclosed.has(vendorId), `newModel.vendorsDisclosed.has(${vendorId})`).to.be.true;
-      expect(tcModel.vendorsDisclosed.has(vendorId), `tcModel.vendorsDisclosed.has(${vendorId})`).to.be.false;
+      expect(tcModel.vendorsDisclosed.has(vendorId), `tcModel.vendorsDisclosed.has(${vendorId})`).to.be.true;
 
     });
 
@@ -112,6 +145,18 @@ describe('TCString', (): void => {
 
   });
 
+  // The next tests require that we use GVL tcf ver 2 and gvl version 51. If we update the tests to a newer GVL
+  // this test and the test against specific vendors that only set special purposes or only purposes and special
+  // purposes will need to be updated.
+  it('should use vendor list tcf ver 2 and gvl version 51', (): void => {
+
+    const gvl = getTCModel().gvl;
+
+    expect(gvl.gvlSpecificationVersion, `gvl.gvlSpecificationVersion === 2`).to.equal(2);
+    expect(gvl.vendorListVersion, `gvl.vendorListVersion == 51`).to.equal(51);
+
+  });
+
   it('should add a segment to a model on decode if a model is passed in', (): void => {
 
     const tcModel = getTCModel();
@@ -148,15 +193,7 @@ describe('TCString', (): void => {
 
       if (!vendor || (value && vendor.legIntPurposes.length === 0)) {
 
-        if (vendor && vendor.purposes.length === 0 && vendor.specialPurposes.length > 0) {
-
-          expect(newModel.vendorLegitimateInterests.has(id), `vendorLegitimateInterests.has(${id})`).to.be.true;
-
-        } else {
-
-          expect(newModel.vendorLegitimateInterests.has(id), `vendorLegitimateInterests.has(${id})`).to.be.false;
-
-        }
+        expect(newModel.vendorLegitimateInterests.has(id), `vendorLegitimateInterests.has(${id})`).to.be.false;
 
       } else {
 
@@ -172,17 +209,45 @@ describe('TCString', (): void => {
 
     });
 
+    // use case: vendor has at least one special purpose but NO purposes declared. Using tcModel.vendorConsents.set() should not
+    // set the purpose bit (using id 278, 415, 484 (GVL v51) as an example)
+    tcModel.purposeConsents.set([278, 415, 484]);
+    const encodedString = TCString.encode(tcModel);
+    const newModel2 = TCString.decode(encodedString);
+
+    newModel2.purposeConsents.forEach((value: boolean, id: number): void => {
+
+      if ( id === 278 || id === 415 || id === 484 ) {
+
+        expect(newModel2.purposeConsents.has(id), `specialPurposeButNoPurposeConsent.has(${id})`).to.equal(false);
+
+      }
+
+    });
+
     tcModel.purposeLegitimateInterests.forEach((value: boolean, id: number): void => {
 
-      if ( id === 1 && value ) {
+      if ( (id === 1 || id >= 3 && id <= 6) && value ) {
 
-        // id 1 gets unset on encoding for legitimate interests
+        // id 1, 3, 4, 5 & 6 gets unset on encoding for legitimate interests
 
         expect(newModel.purposeLegitimateInterests.has(id), `purposeLegitimateInterests.has(${id})`).to.be.false;
 
       } else {
 
         expect(newModel.purposeLegitimateInterests.has(id), `purposeLegitimateInterests.has(${id})`).to.equal(value);
+
+      }
+
+    });
+
+    tcModel.vendorLegitimateInterests.forEach((value: boolean, id: number): void => {
+
+      // gvl spec ver 2, gvl ver 51: vendor ids 415, 612 and 615 have special purposes only declared. LI should remain false
+
+      if ( (id === 415 || id === 612 || id === 615 ) && value ) {
+
+        expect(newModel.vendorLegitimateInterests.has(id), `vendorLegitimateInterestsForSpecialPurpose.has(${id})`).to.be.false;
 
       }
 
